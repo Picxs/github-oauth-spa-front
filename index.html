@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Repo Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>GitHub Repository Manager</h1>
+            <div id="content">
+                <div class="login-container">
+                    <h2>Bem-vindo</h2>
+                    <p>Gerencie seus repositórios do GitHub com segurança</p>
+                    <button id="login-btn" class="btn-primary">Login com GitHub</button>
+                    <div class="features">
+                        <h3>Funcionalidades:</h3>
+                        <ul>
+                            <li>🔍 Visualizar repositórios (Viewer)</li>
+                            <li>⚡ Criar repositórios (Manager)</li>
+                            <li>🔒 Autenticação segura OAuth 2.0 PKCE</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import AuthUtils from './src/auth.js';
+
+        document.getElementById('login-btn').addEventListener('click', () => {
+            AuthUtils.startOAuthFlow();
+        });
+
+        // Verificar se já está autenticado
+        if (sessionStorage.getItem('access_token')) {
+            window.location.href = '/dashboard.html';
+        }
+    </script>
+</body>
+</html>

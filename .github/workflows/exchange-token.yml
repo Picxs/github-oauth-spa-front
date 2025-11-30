@@ -1,0 +1,56 @@
+name: OAuth Token Exchange
+
+on:
+  push:
+    paths:
+      - 'token-exchange.html'
+  workflow_dispatch:
+
+jobs:
+  process-token:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'token-exchange')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Extract OAuth parameters
+      id: extract-params
+      run: |
+        # Em um cenário real, isso seria mais complexo
+        # Aqui estamos simulando o processamento do token
+        echo "Token exchange simulation"
+        echo "CLIENT_ID: ${{ secrets.AUTH_CLIENT_ID }}"
+        echo "CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}"
+
+    - name: Update token-exchange page
+      run: |
+        cat > token-exchange.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Token Processed</title>
+            <style>body{font-family: Arial, sans-serif; text-align: center; padding: 50px;}</style>
+        </head>
+        <body>
+            <h1>Token Processado com Sucesso!</h1>
+            <p>Redirecionando para a aplicação...</p>
+            <script>
+                // Simular token de acesso (em produção, isso viria da API do GitHub)
+                const mockAccessToken = "gho_mock_token_" + Math.random().toString(36).substr(2);
+                sessionStorage.setItem('access_token', mockAccessToken);
+                sessionStorage.setItem('user_scope', 'manager');
+                setTimeout(() => window.location.href = '/index.html', 2000);
+            </script>
+        </body>
+        </html>
+        EOF
+
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add token-exchange.html
+        git commit -m "Process token exchange [skip ci]" || exit 0
+        git push

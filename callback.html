@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processando Login - GitHub Repo Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>GitHub Repository Manager</h1>
+        <div class="login-container">
+            <h2>Processando autenticação...</h2>
+            <div class="loading-spinner"></div>
+            <p id="status">Validando...</p>
+        </div>
+    </div>
+
+    <script>
+        // CLIENT_ID injetado pelo GitHub Actions
+        const CLIENT_ID = window.CLIENT_ID;
+
+        async function processCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            const error = urlParams.get('error');
+
+            const statusEl = document.getElementById('status');
+
+            try {
+                if (error) {
+                    throw new Error(`Erro de autorização: ${error}`);
+                }
+
+                if (!code) {
+                    throw new Error('Código de autorização não recebido');
+                }
+
+                // Validar state (CSRF protection)
+                const storedState = sessionStorage.getItem('oauth_state');
+                if (state !== storedState) {
+                    throw new Error('Falha de segurança: State inválido');
+                }
+
+                statusEl.textContent = 'Preparando token...';
+
+                // Preparar dados para GitHub Actions
+                const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+                
+                // Redirecionar para página de troca de token
+                const tokenExchangeUrl = new URL('/token-exchange.html', window.location.origin);
+                tokenExchangeUrl.searchParams.set('code', code);
+                tokenExchangeUrl.searchParams.set('code_verifier', codeVerifier);
+                tokenExchangeUrl.searchParams.set('client_id', CLIENT_ID);
+                tokenExchangeUrl.searchParams.set('redirect_uri', window.location.href.split('?')[0]);
+
+                window.location.href = tokenExchangeUrl.toString();
+
+            } catch (error) {
+                console.error('Erro no callback:', error);
+                statusEl.textContent = error.message;
+                statusEl.style.color = 'red';
+                
+                sessionStorage.removeItem('pkce_code_verifier');
+                sessionStorage.removeItem('oauth_state');
+                
+                setTimeout(() => window.location.href = '/', 3000);
+            }
+        }
+
+        // Iniciar processamento
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', processCallback);
+        } else {
+            processCallback();
+        }
+    </script>
+</body>
+</html>

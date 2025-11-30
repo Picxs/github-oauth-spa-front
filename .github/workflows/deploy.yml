@@ -1,0 +1,147 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Build SPA with injected CLIENT_ID
+      run: |
+        # Criar diretório de build
+        mkdir -p _site
+        
+        # Processar HTMLs para injetar CLIENT_ID
+        sed "s/window.CLIENT_ID = '.*'/window.CLIENT_ID = '${{ secrets.AUTH_CLIENT_ID }}'/g" index.html > _site/index.html
+        sed "s/window.CLIENT_ID = '.*'/window.CLIENT_ID = '${{ secrets.AUTH_CLIENT_ID }}'/g" callback.html > _site/callback.html
+        cp token-exchange.html _site/
+        cp styles.css _site/
+        
+        # Criar diretório src e copiar JS
+        mkdir -p _site/src
+        cp src/*.js _site/src/
+        
+        # Criar dashboard.html
+        cat > _site/dashboard.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Dashboard - GitHub Repo Manager</title>
+            <link rel="stylesheet" href="styles.css">
+        </head>
+        <body>
+            <div class="container">
+                <h1>GitHub Repository Manager</h1>
+                <div id="dashboard">
+                    <div class="dashboard-header">
+                        <h2>Dashboard</h2>
+                        <button onclick="logout()" class="btn-secondary">Logout</button>
+                    </div>
+                    <div id="content">
+                        <p>Carregando...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <script src="src/auth.js"></script>
+            <script>
+                function logout() {
+                    sessionStorage.removeItem('access_token');
+                    sessionStorage.removeItem('user_scope');
+                    window.location.href = '/';
+                }
+
+                // Simular dashboard baseado no escopo
+                const scope = sessionStorage.getItem('user_scope') || 'viewer';
+                const token = sessionStorage.getItem('access_token');
+                
+                if (!token) {
+                    window.location.href = '/';
+                    return;
+                }
+
+                const content = document.getElementById('content');
+                
+                if (scope === 'manager') {
+                    content.innerHTML = `
+                        <div class="dashboard-content">
+                            <h3>Perfil: Manager</h3>
+                            <div class="actions">
+                                <button class="btn-primary" onclick="viewRepos()">Ver Repositórios</button>
+                                <button class="btn-primary" onclick="createRepo()">Criar Repositório</button>
+                            </div>
+                            <div id="results"></div>
+                        </div>
+                    `;
+                } else {
+                    content.innerHTML = `
+                        <div class="dashboard-content">
+                            <h3>Perfil: Viewer</h3>
+                            <div class="actions">
+                                <button class="btn-primary" onclick="viewRepos()">Ver Repositórios</button>
+                            </div>
+                            <div id="results"></div>
+                        </div>
+                    `;
+                }
+
+                async function viewRepos() {
+                    const results = document.getElementById('results');
+                    results.innerHTML = '<p>Carregando repositórios...</p>';
+                    
+                    // Simular chamada à API
+                    setTimeout(() => {
+                        results.innerHTML = `
+                            <div class="repo-list">
+                                <h4>Seus Repositórios:</h4>
+                                <ul>
+                                    <li>meu-projeto</li>
+                                    <li>react-app</li>
+                                    <li>api-backend</li>
+                                </ul>
+                            </div>
+                        `;
+                    }, 1000);
+                }
+
+                async function createRepo() {
+                    const repoName = prompt('Nome do novo repositório:');
+                    if (repoName) {
+                        const results = document.getElementById('results');
+                        results.innerHTML = `<p>Criando repositório "${repoName}"...</p>`;
+                        
+                        setTimeout(() => {
+                            results.innerHTML = `<p>✅ Repositório "${repoName}" criado com sucesso!</p>`;
+                        }, 1500);
+                    }
+                }
+            </script>
+        </body>
+        </html>
+        EOF
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: _site
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
