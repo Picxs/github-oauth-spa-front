@@ -69,15 +69,18 @@ class AuthUtils {
 }
 
 // ===== DASHBOARD =====
+// ===== DASHBOARD COM API REAL =====
 class Dashboard {
     constructor(accessToken, userScope) {
         this.accessToken = accessToken;
         this.userScope = userScope;
         this.userInfo = null;
+        this.repos = [];
     }
 
     async render(container) {
         await this.loadUserInfo();
+        await this.loadUserRepos(); // Carrega repositórios reais
         
         const html = `
             <div class="dashboard">
@@ -86,23 +89,40 @@ class Dashboard {
                     <div class="user-info">
                         <h2>Bem-vindo, ${this.userInfo.name || this.userInfo.login}!</h2>
                         <p class="user-scope">Perfil: <strong>${this.userScope === 'manager' ? 'Manager' : 'Viewer'}</strong></p>
+                        <p class="user-login">@${this.userInfo.login}</p>
                     </div>
                     <button id="logout-btn" class="btn-secondary">Logout</button>
                 </div>
                 
                 <div class="dashboard-content">
+                    <div class="stats-section">
+                        <div class="stat-card">
+                            <h3>${this.userInfo.public_repos || 0}</h3>
+                            <p>Repositórios</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>${this.userInfo.followers || 0}</h3>
+                            <p>Seguidores</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>${this.userInfo.following || 0}</h3>
+                            <p>Seguindo</p>
+                        </div>
+                    </div>
+                    
                     <div class="actions-section">
                         <h3>Ações Disponíveis</h3>
                         <div class="actions">
                             ${this.userScope === 'manager' ? 
                                 `
-                                <button class="btn-primary" id="view-repos-btn">📂 Ver Repositórios</button>
+                                <button class="btn-primary" id="view-repos-btn">📂 Meus Repositórios</button>
                                 <button class="btn-primary" id="create-repo-btn">🆕 Criar Repositório</button>
-                                <button class="btn-primary" id="manage-repos-btn">⚙️ Gerenciar Repositórios</button>
+                                <button class="btn-primary" id="refresh-btn">🔄 Atualizar</button>
                                 ` : 
                                 `
-                                <button class="btn-primary" id="view-repos-btn">📂 Ver Repositórios</button>
-                                <button class="btn-primary" id="view-profile-btn">👤 Ver Perfil</button>
+                                <button class="btn-primary" id="view-repos-btn">📂 Meus Repositórios</button>
+                                <button class="btn-primary" id="view-profile-btn">👤 Meu Perfil</button>
+                                <button class="btn-primary" id="refresh-btn">🔄 Atualizar</button>
                                 `
                             }
                         </div>
@@ -123,21 +143,64 @@ class Dashboard {
     }
 
     async loadUserInfo() {
-        // Simular dados do usuário
-        this.userInfo = {
-            avatar_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-            name: 'Usuário GitHub',
-            login: 'github-user'
-        };
+        try {
+            const response = await fetch('https://api.github.com/user', {
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'GitHub-OAuth-SPA'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro API: ${response.status}`);
+            }
+
+            this.userInfo = await response.json();
+            console.log('✅ Dados do usuário carregados:', this.userInfo);
+        } catch (error) {
+            console.error('❌ Erro ao carregar dados do usuário:', error);
+            // Fallback para dados simulados
+            this.userInfo = {
+                avatar_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+                name: 'Usuário GitHub',
+                login: 'github-user',
+                public_repos: 0,
+                followers: 0,
+                following: 0
+            };
+        }
+    }
+
+    async loadUserRepos() {
+        try {
+            const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=20', {
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'GitHub-OAuth-SPA'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro API: ${response.status}`);
+            }
+
+            this.repos = await response.json();
+            console.log('✅ Repositórios carregados:', this.repos.length);
+        } catch (error) {
+            console.error('❌ Erro ao carregar repositórios:', error);
+            this.repos = [];
+        }
     }
 
     attachEventListeners() {
         document.getElementById('logout-btn').addEventListener('click', () => this.logout());
         document.getElementById('view-repos-btn').addEventListener('click', () => this.viewRepositories());
+        document.getElementById('refresh-btn').addEventListener('click', () => this.refreshData());
         
         if (this.userScope === 'manager') {
             document.getElementById('create-repo-btn').addEventListener('click', () => this.createRepository());
-            document.getElementById('manage-repos-btn').addEventListener('click', () => this.manageRepositories());
         } else {
             document.getElementById('view-profile-btn').addEventListener('click', () => this.viewProfile());
         }
@@ -145,83 +208,153 @@ class Dashboard {
 
     async viewRepositories() {
         const results = document.getElementById('results');
-        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando repositórios...</p>';
+        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando seus repositórios...</p>';
         
-        setTimeout(() => {
-            const repos = [
-                { name: 'meu-projeto', language: 'JavaScript', stars: 15, private: false },
-                { name: 'api-backend', language: 'Python', stars: 8, private: true },
-                { name: 'docs', language: 'Markdown', stars: 3, private: false },
-                { name: 'mobile-app', language: 'TypeScript', stars: 22, private: false }
-            ];
-            
-            results.innerHTML = `
-                <div class="repo-list">
-                    <h4>Seus Repositórios (${repos.length})</h4>
-                    ${repos.map(repo => `
-                        <div class="repo-card">
-                            <h4>${repo.name}</h4>
-                            <p>Linguagem: ${repo.language} | ⭐ ${repo.stars} | ${repo.private ? '🔒 Privado' : '🌐 Público'}</p>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }, 1500);
-    }
+        try {
+            if (this.repos.length === 0) {
+                await this.loadUserRepos();
+            }
 
-    async createRepository() {
-        const repoName = prompt('Nome do repositório:');
-        if (repoName) {
-            const results = document.getElementById('results');
-            results.innerHTML = '<div class="loading-spinner"></div><p>Criando repositório...</p>';
-            
-            setTimeout(() => {
+            if (this.repos.length === 0) {
                 results.innerHTML = `
-                    <div class="success-message">
-                        <h4>✅ Repositório criado com sucesso!</h4>
-                        <p><strong>${repoName}</strong> foi criado no GitHub.</p>
-                        <p>URL: https://github.com/seu-usuario/${repoName}</p>
+                    <div class="empty-state">
+                        <h4>📭 Nenhum repositório encontrado</h4>
+                        <p>Você ainda não tem repositórios no GitHub.</p>
+                        ${this.userScope === 'manager' ? 
+                            '<button class="btn-primary" onclick="dashboard.createRepository()">Criar primeiro repositório</button>' : 
+                            ''
+                        }
                     </div>
                 `;
-            }, 2000);
+                return;
+            }
+
+            results.innerHTML = `
+                <div class="repo-list">
+                    <h4>Seus Repositórios (${this.repos.length})</h4>
+                    <div class="repo-grid">
+                        ${this.repos.map(repo => `
+                            <div class="repo-card">
+                                <div class="repo-header">
+                                    <h4>
+                                        <a href="${repo.html_url}" target="_blank" class="repo-link">
+                                            ${repo.name}
+                                        </a>
+                                    </h4>
+                                    <span class="repo-visibility">${repo.private ? '🔒' : '🌐'}</span>
+                                </div>
+                                ${repo.description ? `<p class="repo-description">${repo.description}</p>` : ''}
+                                <div class="repo-meta">
+                                    ${repo.language ? `<span class="repo-language">${repo.language}</span>` : ''}
+                                    <span class="repo-stars">⭐ ${repo.stargazers_count}</span>
+                                    <span class="repo-forks">⑂ ${repo.forks_count}</span>
+                                    <span class="repo-updated">📅 ${new Date(repo.updated_at).toLocaleDateString('pt-BR')}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            results.innerHTML = `<div class="error-message"><p>❌ Erro ao carregar repositórios: ${error.message}</p></div>`;
         }
     }
 
-    async manageRepositories() {
+    async createRepository() {
+        const repoName = prompt('Digite o nome do novo repositório:');
+        if (!repoName) return;
+
         const results = document.getElementById('results');
-        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando opções de gerenciamento...</p>';
+        results.innerHTML = '<div class="loading-spinner"></div><p>Criando repositório...</p>';
         
-        setTimeout(() => {
+        try {
+            const response = await fetch('https://api.github.com/user/repos', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'GitHub-OAuth-SPA'
+                },
+                body: JSON.stringify({
+                    name: repoName,
+                    description: 'Repositório criado via GitHub OAuth SPA',
+                    private: false,
+                    auto_init: true
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Erro: ${response.status}`);
+            }
+
+            const newRepo = await response.json();
+            
+            // Recarregar a lista de repositórios
+            await this.loadUserRepos();
+            
             results.innerHTML = `
-                <div class="manager-actions">
-                    <h4>⚙️ Ações de Gerenciamento (Manager)</h4>
-                    <div class="action-buttons">
-                        <button class="btn-secondary" onclick="alert('Configurações do repositório')">Configurações</button>
-                        <button class="btn-secondary" onclick="alert('Gerenciar colaboradores')">Colaboradores</button>
-                        <button class="btn-secondary" onclick="alert('Configurar webhooks')">Webhooks</button>
-                    </div>
-                    <p>Funcionalidade disponível apenas para usuários Manager.</p>
+                <div class="success-message">
+                    <h4>✅ Repositório criado com sucesso!</h4>
+                    <p><strong>${newRepo.name}</strong> foi criado no GitHub.</p>
+                    <p><a href="${newRepo.html_url}" target="_blank" class="repo-link">Abrir no GitHub →</a></p>
+                    <button class="btn-primary" onclick="dashboard.viewRepositories()">Ver todos os repositórios</button>
                 </div>
             `;
-        }, 1500);
+        } catch (error) {
+            results.innerHTML = `
+                <div class="error-message">
+                    <p>❌ Erro ao criar repositório: ${error.message}</p>
+                    ${error.message.includes('name already exists') ? 
+                        '<p>💡 Este nome já está em uso. Tente outro nome.</p>' : ''
+                    }
+                </div>
+            `;
+        }
     }
 
     async viewProfile() {
         const results = document.getElementById('results');
-        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando perfil...</p>';
+        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando seu perfil...</p>';
         
-        setTimeout(() => {
+        try {
             results.innerHTML = `
                 <div class="profile-info">
-                    <h4>👤 Informações do Perfil (Viewer)</h4>
-                    <p><strong>Nome:</strong> Usuário GitHub</p>
-                    <p><strong>Email:</strong> usuario@example.com</p>
-                    <p><strong>Plano:</strong> GitHub Free</p>
-                    <p><strong>Repositórios públicos:</strong> 15</p>
-                    <p><strong>Seguidores:</strong> 42</p>
+                    <h4>👤 Seu Perfil GitHub</h4>
+                    <div class="profile-details">
+                        <p><strong>Nome:</strong> ${this.userInfo.name || 'Não informado'}</p>
+                        <p><strong>Usuário:</strong> @${this.userInfo.login}</p>
+                        ${this.userInfo.email ? `<p><strong>Email:</strong> ${this.userInfo.email}</p>` : ''}
+                        <p><strong>Bio:</strong> ${this.userInfo.bio || 'Não informada'}</p>
+                        <p><strong>Localização:</strong> ${this.userInfo.location || 'Não informada'}</p>
+                        <p><strong>Repositórios públicos:</strong> ${this.userInfo.public_repos}</p>
+                        <p><strong>Seguidores:</strong> ${this.userInfo.followers}</p>
+                        <p><strong>Seguindo:</strong> ${this.userInfo.following}</p>
+                    </div>
+                    <a href="${this.userInfo.html_url}" target="_blank" class="btn-primary">Ver perfil no GitHub</a>
                 </div>
             `;
-        }, 1500);
+        } catch (error) {
+            results.innerHTML = `<div class="error-message"><p>❌ Erro ao carregar perfil: ${error.message}</p></div>`;
+        }
+    }
+
+    async refreshData() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<div class="loading-spinner"></div><p>Atualizando dados...</p>';
+        
+        try {
+            await this.loadUserInfo();
+            await this.loadUserRepos();
+            
+            // Recarregar o dashboard para mostrar dados atualizados
+            await this.render(document.getElementById('content'));
+            
+            results.innerHTML = '<div class="success-message"><p>✅ Dados atualizados com sucesso!</p></div>';
+        } catch (error) {
+            results.innerHTML = `<div class="error-message"><p>❌ Erro ao atualizar: ${error.message}</p></div>`;
+        }
     }
 
     logout() {
@@ -233,6 +366,7 @@ class Dashboard {
     }
 }
 
+
 // ===== MAIN APP =====
 class App {
     constructor() {
@@ -241,6 +375,10 @@ class App {
 
     async init() {
         console.log('🚀 Aplicação iniciada - CLIENT_ID:', window.CLIENT_ID);
+
+        // Expor dashboard globalmente para os event listeners
+        window.dashboard = null;
+
         
         // Verificar página atual
         const path = window.location.pathname;
@@ -399,8 +537,8 @@ class App {
     async showDashboard(accessToken) {
         try {
             const userScope = await AuthUtils.getUserScopes(accessToken);
-            const dashboard = new Dashboard(accessToken, userScope);
-            await dashboard.render(document.getElementById('content'));
+            window.dashboard = new Dashboard(accessToken, userScope);
+            await window.dashboard.render(document.getElementById('content'));
         } catch (error) {
             console.error('❌ Erro ao carregar dashboard:', error);
             sessionStorage.removeItem('access_token');
