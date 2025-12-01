@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processando - GitHub Repo Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>GitHub Repository Manager</h1>
+            <div id="content">
+                <div class="login-container">
+                    <h2>Processando Autenticação</h2>
+                    <div class="loading-spinner"></div>
+                    <p id="status">Iniciando processamento...</p>
+                    <div id="instructions" style="display: none; margin-top: 20px; padding: 15px; background: #f6f8fa; border-radius: 6px;">
+                        <h3>📋 Próximos Passos:</h3>
+                        <ol>
+                            <li>Este processo simula a obtenção do token</li>
+                            <li>Em produção, usaria GitHub Actions</li>
+                            <li>Redirecionando para dashboard...</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function processAuthentication() {
+            const statusEl = document.getElementById('status');
+            const instructionsEl = document.getElementById('instructions');
+            
+            try {
+                statusEl.textContent = 'Recuperando dados de autenticação...';
+                
+                // Recuperar dados do sessionStorage
+                const authData = sessionStorage.getItem('pending_auth');
+                if (!authData) {
+                    throw new Error('Dados de autenticação não encontrados');
+                }
+
+                const { code, code_verifier, client_id } = JSON.parse(authData);
+                
+                statusEl.textContent = 'Simulando troca de token...';
+                instructionsEl.style.display = 'block';
+
+                // SIMULAÇÃO: Em produção real, isso seria feito por GitHub Actions
+                // Aqui vamos simular um token e determinar escopo baseado nas permissões
+                
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                statusEl.textContent = 'Criando sessão de usuário...';
+
+                // Simular token de acesso (em produção real, viria do GitHub)
+                const mockToken = "gho_simulated_" + Math.random().toString(36).substr(2, 20);
+                
+                // Determinar escopo baseado em probabilidade ou lógica específica
+                // Para demonstração, vamos alternar entre manager e viewer
+                const userScope = Math.random() > 0.3 ? 'manager' : 'viewer';
+                
+                // Salvar token e escopo
+                sessionStorage.setItem('access_token', mockToken);
+                sessionStorage.setItem('user_scope', userScope);
+                
+                // Limpar dados temporários
+                sessionStorage.removeItem('pending_auth');
+                sessionStorage.removeItem('pkce_code_verifier');
+                sessionStorage.removeItem('oauth_state');
+                
+                statusEl.textContent = 'Autenticação simulada concluída! Redirecionando...';
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro no processamento:', error);
+                statusEl.textContent = 'Erro: ' + error.message;
+                statusEl.style.color = 'red';
+                
+                sessionStorage.removeItem('pending_auth');
+                sessionStorage.removeItem('pkce_code_verifier');
+                sessionStorage.removeItem('oauth_state');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 3000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', processAuthentication);
+    </script>
+</body>
+</html>
