@@ -30,6 +30,15 @@
     </div>
 
     <script>
+        /*
+        Esta página foi criada como um intermediário entre o callback do GitHub e a aplicação principal.
+         Ela simula o servidor de troca de tokens que, em uma aplicação real, 
+         seria necessário mas não consegui implementar em uma SPA hospedada no GitHub Pages.
+         A implementação atual gera um token simulado e determina aleatoriamente se o usuário é Viewer ou Manager 
+         (com 70% de chance de ser Manager para demonstração). Esta abordagem foi escolhida por duas razões: 1) 
+          Evitar expor client_secret no front-end (que seria inseguro), e 2) 
+          Permitir a demonstração completa do fluxo PKCE mesmo sem um backend. 
+        */
         async function processAuthentication() {
             const statusEl = document.getElementById('status');
             const instructionsEl = document.getElementById('instructions');

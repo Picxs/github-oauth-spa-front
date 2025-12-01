@@ -1,3 +1,8 @@
+#Implementa um workflow de GitHub Actions que automatiza o deploy para o GitHub Pages. 
+#O passo mais importante é o "Build SPA with injected secrets", 
+#que substitui os placeholders pelos valores reais dos secrets do repositório usando sed. 
+#Isso garante que o CLIENT_ID real seja injetado na aplicação sem nunca aparecer no código fonte. 
+
 name: Deploy to GitHub Pages
 
 on:

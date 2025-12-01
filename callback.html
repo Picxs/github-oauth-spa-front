@@ -25,6 +25,17 @@
     </div>
 
     <script>
+
+        /*
+        Implementa o callback do fluxo OAuth, recebendo o code e state do GitHub. 
+        Valida o state contra CSRF, armazena temporariamente os dados no sessionStorage 
+        e redireciona para processing.html. 
+        Esta separação é importante porque o GitHub não pode redirecionar diretamente 
+        para uma página que faz processamento complexo - precisa ser uma página simples que 
+        apenas colete os parâmetros da URL. O uso de sessionStorage garante que os dados sejam 
+        mantidos apenas durante a sessão do navegador e são automaticamente limpos quando a aba é fechada.
+        
+        */
         async function processCallback() {
             const statusEl = document.getElementById('status');
             

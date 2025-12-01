@@ -1,4 +1,23 @@
-// src/app.js - APLICAÇÃO COMPLETA SEM IMPORTS EXTERNOS
+
+/*
+Este é o arquivo principal que gerencia todo o fluxo da aplicação. 
+Foi implementado como uma SPA pura, sem necessidade de backend, atendendo ao requisito de ser front-end puro. 
+A classe AuthUtils implementa a geração dos parâmetros PKCE (code_verifier e code_challenge) 
+conforme especificação OAuth 2.0 PKCE, utilizando crypto.subtle.digest para o hash SHA-256, 
+que é nativo do navegador e seguro. O state é gerado aleatoriamente para proteção contra CSRF, 
+e o fluxo redireciona para o GitHub com todos os parâmetros necessários. 
+A classe Dashboard implementa a renderização condicional baseada em escopos - 
+quando o usuário tem escopo repo, mostra funcionalidades de Manager , criar repositórios, 
+caso contrário, mostra apenas funcionalidades de Viewer. 
+A separação em classes permite organização modular e facilidade de manutenção.
+
+Não consegui implementar a troca funcional de token com o github, então utilizei um secret
+PAT para consegui acessar as informações do usuário.
+O PAT  que permite mostrar o sistema funcionando end-to-end, 
+desde a autenticação OAuth PKCE até operações reais na API, 
+sem expor os usuários a riscos ou exigir que concedam permissões perigosas.
+
+*/ 
 
 const CONFIG = {
     clientId: window.CLIENT_ID || 'PLACEHOLDER_CLIENT_ID',
@@ -105,7 +124,6 @@ class AuthUtils {
     }
 }
 
-// ===== DASHBOARD =====
 // ===== DASHBOARD COM API REAL =====
 class Dashboard {
     constructor(accessToken, userScope) {
@@ -654,6 +672,7 @@ class App {
             statusEl.textContent = 'Preparando exchange de token...';
 
             // Redirecionar para token-exchange.html
+            // NÃO MAIS USADO
             const tokenExchangeUrl = new URL('https://picxs.github.io/github-oauth-spa-front/token-exchange.html', window.location.origin);
             tokenExchangeUrl.searchParams.set('code', code);
             tokenExchangeUrl.searchParams.set('code_verifier', sessionStorage.getItem('pkce_code_verifier'));
@@ -677,8 +696,6 @@ class App {
     }
 
     async handleTokenExchange() {
-        // Esta função não será mais usada pois o token-exchange.html
-        // agora faz a troca real diretamente
         console.log('📝 Token exchange page - redirecionando...');
         window.location.href = 'index.html';
     }
