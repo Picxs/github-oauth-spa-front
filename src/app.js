@@ -43,13 +43,12 @@ class AuthUtils {
 
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
-            const redirectUri = `${window.location.origin} /github-oauth-spa-front/callback.html`;
-            console.log(redirectUri);
+            const redirectUri = `${window.location.origin}callback.html`;
             const scope = 'read:user repo';
 
             const authUrl = new URL('https://github.com/login/oauth/authorize');
             authUrl.searchParams.set('client_id', window.CLIENT_ID);
-            authUrl.searchParams.set('redirect_uri', 'https://picxs.github.io/github-oauth-spa-front/callback.html');
+            authUrl.searchParams.set('redirect_uri', redirectUri);
             authUrl.searchParams.set('scope', scope);
             authUrl.searchParams.set('response_type', 'code');
             authUrl.searchParams.set('state', state);
@@ -57,6 +56,7 @@ class AuthUtils {
             authUrl.searchParams.set('code_challenge_method', 'S256');
 
             console.log('📍 Redirecionando para GitHub...');
+            console.log(redirectUri);
             window.location.href = authUrl.toString();
         } catch (error) {
             console.error('❌ Erro no OAuth:', error);
