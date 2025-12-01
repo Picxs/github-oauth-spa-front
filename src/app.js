@@ -43,7 +43,7 @@ class AuthUtils {
 
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
-            const redirectUri = `${window.location.origin}callback.html`;
+            const redirectUri = `${window.location.origin}`;
             const scope = 'read:user repo';
 
             const authUrl = new URL('https://github.com/login/oauth/authorize');
@@ -55,8 +55,7 @@ class AuthUtils {
             authUrl.searchParams.set('code_challenge', codeChallenge);
             authUrl.searchParams.set('code_challenge_method', 'S256');
 
-            console.log('📍 Redirecionando para GitHub...');
-            console.log(redirectUri);
+            console.log('📍 Redirecionando para GitHub...' + redirectUri);
             window.location.href = authUrl.toString();
         } catch (error) {
             console.error('❌ Erro no OAuth:', error);
