@@ -16,13 +16,10 @@
                     <h2>Processando Autenticação</h2>
                     <div class="loading-spinner"></div>
                     <p id="status">Iniciando processamento...</p>
-                    <div id="instructions" style="display: none; margin-top: 20px; padding: 15px; background: #f6f8fa; border-radius: 6px;">
-                        <h3>📋 Próximos Passos:</h3>
-                        <ol>
-                            <li>Este processo simula a obtenção do token</li>
-                            <li>Em produção, usaria GitHub Actions</li>
-                            <li>Redirecionando para dashboard...</li>
-                        </ol>
+                    <div id="error" style="display: none; margin-top: 20px; padding: 15px; background: #ffebee; border: 1px solid #f44336; border-radius: 6px; color: #c62828;">
+                        <h3>❌ Erro na Autenticação</h3>
+                        <p id="error-message"></p>
+                        <button onclick="window.location.href='index.html'" class="btn-primary">Voltar ao Login</button>
                     </div>
                 </div>
             </div>
@@ -30,9 +27,159 @@
     </div>
 
     <script>
+        async function exchangeCodeForToken(code, codeVerifier, clientId) {
+            console.log('🔄 Iniciando troca de código por token...');
+            
+            const response = await fetch('https://github.com/login/oauth/access_token', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    client_id: clientId,
+                    client_secret: '', // Vazio para PKCE em SPA
+                    code: code,
+                    code_verifier: codeVerifier,
+                    redirect_uri: 'https://picxs.github.io/github-oauth-spa-front/callback.html'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const tokenData = await response.json();
+            console.log('📦 Resposta do token:', tokenData);
+
+            if (tokenData.error) {
+                throw new Error(`GitHub OAuth error: ${tokenData.error_description || tokenData.error}`);
+            }
+
+            if (!tokenData.access_token) {
+                throw new Error('Access token não recebido na resposta');
+            }
+
+            return tokenData;
+        }
+
+        async function getUserInfo(accessToken) {
+            console.log('🔍 Obtendo informações do usuário...');
+            
+            const response = await fetch('https://api.github.com/user', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'GitHub-OAuth-SPA'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao obter user info: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        async function determineUserScope(accessToken) {
+            try {
+                console.log('🎯 Determinando escopo do usuário...');
+                
+                const response = await fetch('https://api.github.com/user', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'User-Agent': 'GitHub-OAuth-SPA'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Falha ao verificar escopos');
+                }
+
+                // Verificar escopos no header da resposta
+                const scopesHeader = response.headers.get('x-oauth-scopes');
+                console.log('📋 Escopos concedidos:', scopesHeader);
+
+                if (scopesHeader) {
+                    // Verificar se tem permissões de escrita (repo scope)
+                    const hasRepoScope = scopesHeader.includes('repo');
+                    const hasWriteScope = scopesHeader.includes('write');
+                    
+                    console.log('🔍 Análise de escopos:', {
+                        hasRepoScope,
+                        hasWriteScope,
+                        scopesHeader
+                    });
+
+                    return hasRepoScope ? 'manager' : 'viewer';
+                }
+
+                // Fallback: tentar fazer uma operação de escrita para testar permissões
+                console.log('⚠️  Headers de escopo não disponíveis, testando permissões...');
+                const userInfo = await response.json();
+                
+                // Tentar listar repositórios (operação de leitura sempre permitida)
+                const reposResponse = await fetch('https://api.github.com/user/repos?per_page=1', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'User-Agent': 'GitHub-OAuth-SPA'
+                    }
+                });
+
+                if (reposResponse.ok) {
+                    // Se consegue listar repositórios, verificar se tem permissões de escrita
+                    // tentando criar um repositório de teste (que será deletado imediatamente)
+                    try {
+                        const testRepoResponse = await fetch('https://api.github.com/user/repos', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Accept': 'application/vnd.github.v3+json',
+                                'Content-Type': 'application/json',
+                                'User-Agent': 'GitHub-OAuth-SPA'
+                            },
+                            body: JSON.stringify({
+                                name: 'test-permission-check-' + Date.now(),
+                                description: 'Repositório temporário para verificação de permissões - será deletado',
+                                private: true,
+                                auto_init: false
+                            })
+                        });
+
+                        if (testRepoResponse.status === 201) {
+                            const testRepo = await testRepoResponse.json();
+                            console.log('✅ Permissões de escrita confirmadas - deletando repositório de teste...');
+                            
+                            // Deletar o repositório de teste imediatamente
+                            await fetch(`https://api.github.com/repos/${userInfo.login}/${testRepo.name}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`,
+                                    'User-Agent': 'GitHub-OAuth-SPA'
+                                }
+                            });
+                            
+                            return 'manager';
+                        }
+                    } catch (writeError) {
+                        console.log('❌ Sem permissões de escrita:', writeError.message);
+                    }
+                }
+
+                return 'viewer';
+
+            } catch (error) {
+                console.error('❌ Erro ao determinar escopo:', error);
+                // Em caso de erro, assumir perfil mais restritivo (viewer)
+                return 'viewer';
+            }
+        }
+
         async function processAuthentication() {
             const statusEl = document.getElementById('status');
-            const instructionsEl = document.getElementById('instructions');
+            const errorEl = document.getElementById('error');
             
             try {
                 statusEl.textContent = 'Recuperando dados de autenticação...';
@@ -40,55 +187,69 @@
                 // Recuperar dados do sessionStorage
                 const authData = sessionStorage.getItem('pending_auth');
                 if (!authData) {
-                    throw new Error('Dados de autenticação não encontrados');
+                    throw new Error('Dados de autenticação não encontrados. Por favor, inicie o login novamente.');
                 }
 
                 const { code, code_verifier, client_id } = JSON.parse(authData);
                 
-                statusEl.textContent = 'Simulando troca de token...';
-                instructionsEl.style.display = 'block';
+                if (!code || !code_verifier || !client_id) {
+                    throw new Error('Dados de autenticação incompletos.');
+                }
 
-                // SIMULAÇÃO: Em produção real, isso seria feito por GitHub Actions
-                // Aqui vamos simular um token e determinar escopo baseado nas permissões
-                
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                statusEl.textContent = 'Criando sessão de usuário...';
+                console.log('📦 Dados de autenticação:', { 
+                    code: code.substring(0, 10) + '...', 
+                    code_verifier: code_verifier.substring(0, 10) + '...',
+                    client_id: client_id.substring(0, 10) + '...'
+                });
 
-                // Simular token de acesso (em produção real, viria do GitHub)
-                const mockToken = "gho_simulated_" + Math.random().toString(36).substr(2, 20);
+                statusEl.textContent = 'Trocando código por token de acesso...';
+
+                // FAZER A TROCA REAL DE TOKENS
+                const tokenData = await exchangeCodeForToken(code, code_verifier, client_id);
                 
-                // Determinar escopo baseado em probabilidade ou lógica específica
-                // Para demonstração, vamos alternar entre manager e viewer
-                const userScope = Math.random() > 0.3 ? 'manager' : 'viewer';
-                
-                // Salvar token e escopo
-                sessionStorage.setItem('access_token', mockToken);
+                statusEl.textContent = 'Obtendo informações do usuário...';
+
+                // Obter informações do usuário
+                const userInfo = await getUserInfo(tokenData.access_token);
+                console.log('👤 Informações do usuário:', userInfo);
+
+                statusEl.textContent = 'Verificando permissões...';
+
+                // Determinar escopo baseado nas permissões reais
+                const userScope = await determineUserScope(tokenData.access_token);
+                console.log('🎯 Escopo determinado:', userScope);
+
+                statusEl.textContent = 'Criando sessão...';
+
+                // Salvar token e informações no sessionStorage
+                sessionStorage.setItem('access_token', tokenData.access_token);
                 sessionStorage.setItem('user_scope', userScope);
+                sessionStorage.setItem('user_info', JSON.stringify(userInfo));
                 
                 // Limpar dados temporários
                 sessionStorage.removeItem('pending_auth');
                 sessionStorage.removeItem('pkce_code_verifier');
                 sessionStorage.removeItem('oauth_state');
                 
-                statusEl.textContent = 'Autenticação simulada concluída! Redirecionando...';
-                
+                statusEl.textContent = 'Autenticação concluída! Redirecionando...';
+                console.log('✅ Autenticação REAL concluída com sucesso!');
+
                 setTimeout(() => {
                     window.location.href = 'index.html';
-                }, 2000);
+                }, 1500);
 
             } catch (error) {
-                console.error('Erro no processamento:', error);
-                statusEl.textContent = 'Erro: ' + error.message;
-                statusEl.style.color = 'red';
+                console.error('❌ Erro no processamento:', error);
+                statusEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                document.getElementById('error-message').textContent = error.message;
                 
+                // Limpar dados de autenticação em caso de erro
                 sessionStorage.removeItem('pending_auth');
                 sessionStorage.removeItem('pkce_code_verifier');
                 sessionStorage.removeItem('oauth_state');
-                
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 3000);
+                sessionStorage.removeItem('access_token');
+                sessionStorage.removeItem('user_scope');
             }
         }
 
