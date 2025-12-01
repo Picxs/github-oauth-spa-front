@@ -21,8 +21,8 @@ jobs:
         # Em um cenário real, isso seria mais complexo
         # Aqui estamos simulando o processamento do token
         echo "Token exchange simulation"
-        echo "CLIENT_ID: ${{ secrets.AUTH_CLIENT_ID }}"
-        echo "CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}"
+        echo "CLIENT_ID: ${{ secrets.CLIENT_ID }}"
+        echo "CLIENT_SECRET: ${{ secrets.CLIENT_ID }}"
 
     - name: Update token-exchange page
       run: |
