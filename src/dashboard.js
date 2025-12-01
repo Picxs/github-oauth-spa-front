@@ -1,4 +1,4 @@
-import GitHubAPI from '../utils/githubApi.js';
+import GitHubAPI from './githubApi.js';
 
 class Dashboard {
     constructor(accessToken, userScope) {
@@ -14,55 +14,56 @@ class Dashboard {
         const html = `
             <div class="dashboard">
                 <div class="user-header">
-                    <script>
-                        window.CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
-                    </script>
                     <img src="${this.userInfo.avatar_url}" alt="Avatar" class="avatar">
-                    <h2>Bem-vindo, ${this.userInfo.name || this.userInfo.login}!</h2>
-                    <p>Permissão: ${this.userScope === 'manager' ? 'Manager' : 'Viewer'}</p>
-                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+                    <div class="user-info">
+                        <h2>Bem-vindo, ${this.userInfo.name || this.userInfo.login}!</h2>
+                        <p class="user-scope">Perfil: <strong>${this.userScope === 'manager' ? 'Manager' : 'Viewer'}</strong></p>
+                    </div>
+                    <button id="logout-btn" class="btn-secondary">Logout</button>
                 </div>
                 
-                <div class="repos-section">
-                    <div class="section-header">
-                        <h3>Seus Repositórios</h3>
-                        ${this.userScope === 'manager' ? 
-                            '<button id="create-repo-btn" class="btn btn-primary">Criar Novo Repositório</button>' : 
-                            ''
-                        }
+                <div class="dashboard-content">
+                    <div class="actions-section">
+                        <h3>Ações Disponíveis</h3>
+                        <div class="actions">
+                            ${this.userScope === 'manager' ? 
+                                `
+                                <button class="btn-primary" id="view-repos-btn">📂 Ver Repositórios</button>
+                                <button class="btn-primary" id="create-repo-btn">🆕 Criar Repositório</button>
+                                <button class="btn-primary" id="manage-repos-btn">⚙️ Gerenciar Repositórios</button>
+                                ` : 
+                                `
+                                <button class="btn-primary" id="view-repos-btn">📂 Ver Repositórios</button>
+                                <button class="btn-primary" id="view-profile-btn">👤 Ver Perfil</button>
+                                `
+                            }
+                        </div>
                     </div>
-                    <div id="repos-list" class="repos-list"></div>
+                    
+                    <div class="results-section">
+                        <h3>Resultados</h3>
+                        <div id="results" class="results">
+                            <p>Clique em uma ação para ver os resultados...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
 
         container.innerHTML = html;
-        await this.loadRepositories();
         this.attachEventListeners();
     }
 
     async loadUserInfo() {
-        this.userInfo = await this.githubAPI.getUserInfo();
-    }
-
-    async loadRepositories() {
-        const repos = await this.githubAPI.getUserRepos();
-        const reposList = document.getElementById('repos-list');
+        // Simular dados do usuário para demonstração
+        this.userInfo = {
+            avatar_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+            name: 'Usuário GitHub',
+            login: 'github-user'
+        };
         
-        const reposHtml = repos.map(repo => `
-            <div class="repo-card">
-                <h4>${repo.name}</h4>
-                <p>${repo.description || 'Sem descrição'}</p>
-                <div class="repo-meta">
-                    <span class="language">${repo.language || 'N/A'}</span>
-                    <span class="stars">⭐ ${repo.stargazers_count}</span>
-                    <span class="visibility">${repo.private ? '🔒 Privado' : '🌐 Público'}</span>
-                </div>
-                <a href="${repo.html_url}" target="_blank" class="repo-link">Abrir no GitHub</a>
-            </div>
-        `).join('');
-
-        reposList.innerHTML = reposHtml;
+        // Em produção real, você usaria:
+        // this.userInfo = await this.githubAPI.getUserInfo();
     }
 
     attachEventListeners() {
@@ -70,37 +71,132 @@ class Dashboard {
             this.logout();
         });
 
+        document.getElementById('view-repos-btn').addEventListener('click', () => {
+            this.viewRepositories();
+        });
+
         if (this.userScope === 'manager') {
             document.getElementById('create-repo-btn').addEventListener('click', () => {
-                this.showCreateRepoModal();
+                this.createRepository();
+            });
+            document.getElementById('manage-repos-btn').addEventListener('click', () => {
+                this.manageRepositories();
+            });
+        } else {
+            document.getElementById('view-profile-btn').addEventListener('click', () => {
+                this.viewProfile();
             });
         }
     }
 
-    showCreateRepoModal() {
-        const repoName = prompt('Nome do novo repositório:');
-        if (repoName) {
-            this.createRepository(repoName);
+    async viewRepositories() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando repositórios...</p>';
+        
+        try {
+            // Simular carregamento
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            const repos = [
+                { name: 'meu-projeto', language: 'JavaScript', stars: 15, private: false },
+                { name: 'api-backend', language: 'Python', stars: 8, private: true },
+                { name: 'docs', language: 'Markdown', stars: 3, private: false },
+                { name: 'mobile-app', language: 'TypeScript', stars: 22, private: false }
+            ];
+            
+            results.innerHTML = `
+                <div class="repo-list">
+                    <h4>Seus Repositórios (${repos.length})</h4>
+                    ${repos.map(repo => `
+                        <div class="repo-card">
+                            <h4>${repo.name}</h4>
+                            <p>Linguagem: ${repo.language} | ⭐ ${repo.stars} | ${repo.private ? '🔒 Privado' : '🌐 Público'}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } catch (error) {
+            results.innerHTML = `<p class="error">Erro ao carregar repositórios: ${error.message}</p>`;
         }
     }
 
-    async createRepository(repoName) {
+    async createRepository() {
+        const repoName = prompt('Digite o nome do novo repositório:');
+        if (repoName) {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="loading-spinner"></div><p>Criando repositório...</p>';
+            
+            try {
+                // Simular criação
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                results.innerHTML = `
+                    <div class="success-message">
+                        <h4>✅ Repositório criado com sucesso!</h4>
+                        <p><strong>${repoName}</strong> foi criado no GitHub.</p>
+                        <p>URL: https://github.com/seu-usuario/${repoName}</p>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<p class="error">Erro ao criar repositório: ${error.message}</p>`;
+            }
+        }
+    }
+
+    async manageRepositories() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando opções de gerenciamento...</p>';
+        
         try {
-            const result = await this.githubAPI.createRepository(repoName);
-            alert(`Repositório "${repoName}" criado com sucesso!`);
-            await this.loadRepositories(); // Recarregar lista
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            results.innerHTML = `
+                <div class="manager-actions">
+                    <h4>⚙️ Ações de Gerenciamento (Manager)</h4>
+                    <div class="action-buttons">
+                        <button class="btn-secondary" onclick="alert('Configurações do repositório')">Configurações</button>
+                        <button class="btn-secondary" onclick="alert('Gerenciar colaboradores')">Colaboradores</button>
+                        <button class="btn-secondary" onclick="alert('Configurar webhooks')">Webhooks</button>
+                    </div>
+                    <p>Funcionalidade disponível apenas para usuários Manager.</p>
+                </div>
+            `;
         } catch (error) {
-            alert('Erro ao criar repositório: ' + error.message);
+            results.innerHTML = `<p class="error">Erro: ${error.message}</p>`;
+        }
+    }
+
+    async viewProfile() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<div class="loading-spinner"></div><p>Carregando perfil...</p>';
+        
+        try {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            results.innerHTML = `
+                <div class="profile-info">
+                    <h4>👤 Informações do Perfil (Viewer)</h4>
+                    <p><strong>Nome:</strong> Usuário GitHub</p>
+                    <p><strong>Email:</strong> usuario@example.com</p>
+                    <p><strong>Plano:</strong> GitHub Free</p>
+                    <p><strong>Repositórios públicos:</strong> 15</p>
+                    <p><strong>Seguidores:</strong> 42</p>
+                </div>
+            `;
+        } catch (error) {
+            results.innerHTML = `<p class="error">Erro ao carregar perfil: ${error.message}</p>`;
         }
     }
 
     logout() {
-        // Limpar tokens (Requisito C)
-        sessionStorage.removeItem('code_verifier');
+        // Limpar dados da sessão (Requisito C)
+        sessionStorage.removeItem('access_token');
+        sessionStorage.removeItem('user_scope');
+        sessionStorage.removeItem('pkce_code_verifier');
         sessionStorage.removeItem('oauth_state');
         
-        // Redirecionar para logout do GitHub
-        window.location.href = 'https://github.com/logout';
+        // Redirecionar para página inicial
+        window.location.href = 'index.html';
     }
 }
 

@@ -20,18 +20,17 @@
     </div>
 
     <script>
-        // CLIENT_ID injetado pelo GitHub Actions
-        //window.CLIENT_ID = 'Ov23lihCtieY7buaZx6s';
-        const CLIENT_ID = window.CLIENT_ID;
+        // CLIENT_ID já foi injetado pelo GitHub Actions
+        console.log('CLIENT_ID no callback:', window.CLIENT_ID);
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const error = urlParams.get('error');
+
+        const statusEl = document.getElementById('status');
 
         async function processCallback() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            const state = urlParams.get('state');
-            const error = urlParams.get('error');
-
-            const statusEl = document.getElementById('status');
-
             try {
                 if (error) {
                     throw new Error(`Erro de autorização: ${error}`);
@@ -47,38 +46,33 @@
                     throw new Error('Falha de segurança: State inválido');
                 }
 
-                statusEl.textContent = 'Preparando token...';
+                statusEl.textContent = 'Preparando exchange de token...';
 
-                // Preparar dados para GitHub Actions
-                const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
-                
-                // Redirecionar para página de troca de token
-                const tokenExchangeUrl = new URL('/token-exchange.html', window.location.origin);
+                // Redirecionar para token-exchange.html com os parâmetros
+                const tokenExchangeUrl = new URL('token-exchange.html', window.location.origin);
                 tokenExchangeUrl.searchParams.set('code', code);
-                tokenExchangeUrl.searchParams.set('code_verifier', codeVerifier);
-                tokenExchangeUrl.searchParams.set('client_id', CLIENT_ID);
+                tokenExchangeUrl.searchParams.set('code_verifier', sessionStorage.getItem('pkce_code_verifier'));
+                tokenExchangeUrl.searchParams.set('client_id', window.CLIENT_ID);
                 tokenExchangeUrl.searchParams.set('redirect_uri', window.location.href.split('?')[0]);
 
                 window.location.href = tokenExchangeUrl.toString();
 
             } catch (error) {
                 console.error('Erro no callback:', error);
-                statusEl.textContent = error.message;
+                statusEl.textContent = 'Erro: ' + error.message;
                 statusEl.style.color = 'red';
                 
                 sessionStorage.removeItem('pkce_code_verifier');
                 sessionStorage.removeItem('oauth_state');
                 
-                setTimeout(() => window.location.href = '/', 3000);
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 3000);
             }
         }
 
         // Iniciar processamento
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', processCallback);
-        } else {
-            processCallback();
-        }
+        document.addEventListener('DOMContentLoaded', processCallback);
     </script>
 </body>
 </html>

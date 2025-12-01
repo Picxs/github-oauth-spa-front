@@ -8,7 +8,6 @@
     
     <!-- CLIENT_ID será injetado pelo GitHub Actions -->
     <script>
-        // Placeholder que será substituído pelo GitHub Actions
         window.CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
     </script>
 </head>
@@ -17,36 +16,18 @@
         <div class="container">
             <h1>GitHub Repository Manager</h1>
             <div id="content">
+                <!-- Conteúdo será carregado dinamicamente pelo app.js -->
                 <div class="login-container">
                     <h2>Bem-vindo</h2>
                     <p>Gerencie seus repositórios do GitHub com segurança</p>
-                    <button id="login-btn" class="btn-primary">Login com GitHub</button>
-                    <div class="features">
-                        <h3>Funcionalidades:</h3>
-                        <ul>
-                            <li>🔍 Visualizar repositórios (Viewer)</li>
-                            <li>⚡ Criar repositórios (Manager)</li>
-                            <li>🔒 Autenticação segura OAuth 2.0 PKCE</li>
-                        </ul>
-                    </div>
+                    <div class="loading-spinner"></div>
+                    <p>Carregando aplicação...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import AuthUtils from './src/auth.js';
-
-        console.log('CLIENT_ID configurado:', window.CLIENT_ID);
-
-        document.getElementById('login-btn').addEventListener('click', () => {
-            AuthUtils.startOAuthFlow();
-        });
-
-        // Verificar se já está autenticado
-        if (sessionStorage.getItem('access_token')) {
-            window.location.href = '/';
-        }
-    </script>
+    <!-- Carregar a aplicação principal como módulo -->
+    <script type="module" src="src/app.js"></script>
 </body>
 </html>
