@@ -29,7 +29,6 @@ jobs:
         # Processar HTMLs para injetar CLIENT_ID do GitHub Secrets
         sed "s/PLACEHOLDER_CLIENT_ID/${{ secrets.AUTH_CLIENT_ID }}/g" index.html > _site/index.html
         sed "s/PLACEHOLDER_CLIENT_ID/${{ secrets.AUTH_CLIENT_ID }}/g" callback.html > _site/callback.html
-        sed "s/PLACEHOLDER_CLIENT_ID/${{ secrets.AUTH_CLIENT_ID }}/g" token-exchange.html > _site/token-exchange.html
         
         # Copiar outros arquivos
         cp styles.css _site/
