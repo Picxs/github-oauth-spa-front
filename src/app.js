@@ -43,7 +43,7 @@ class AuthUtils {
 
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
-            const redirectUri = `${window.location.origin}github-oauth-spa-front/callback.html`;
+            const redirectUri = `${window.location.origin}callback.html`;
             const scope = 'read:user repo';
 
             const authUrl = new URL('https://github.com/login/oauth/authorize');
