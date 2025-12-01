@@ -249,3 +249,23 @@ h1 {
         gap: 5px;
     }
 }
+
+.real-banner {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #155724;
+}
+
+.demo-banner {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #856404;
+}

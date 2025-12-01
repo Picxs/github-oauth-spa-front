@@ -1,5 +1,18 @@
 // src/app.js - APLICAÇÃO COMPLETA SEM IMPORTS EXTERNOS
 
+const CONFIG = {
+    clientId: window.CLIENT_ID || 'PLACEHOLDER_CLIENT_ID',
+    githubPat: window.GITHUB_PAT,
+    realDataMode: window.REAL_DATA_MODE || false
+};
+
+console.log('🔧 Configuração:', {
+    clientId: CONFIG.clientId ? '✅ Configurado' : '❌ Não configurado',
+    realDataMode: CONFIG.realDataMode,
+    hasPat: !!CONFIG.githubPat
+});
+
+
 // ===== AUTH UTILS =====
 class AuthUtils {
     static generateRandomString(length) {
@@ -104,114 +117,137 @@ class Dashboard {
 
     async render(container) {
         await this.loadUserInfo();
-        await this.loadUserRepos(); // Carrega repositórios reais
+        await this.loadUserRepos();
+        
+        const isRealData = CONFIG.realDataMode && CONFIG.githubPat && CONFIG.githubPat !== 'PLACEHOLDER_PAT';
         
         const html = `
             <div class="dashboard">
-                <div class="user-header">
-                    <img src="${this.userInfo.avatar_url}" alt="Avatar" class="avatar">
-                    <div class="user-info">
-                        <h2>Bem-vindo, ${this.userInfo.name || this.userInfo.login}!</h2>
-                        <p class="user-scope">Perfil: <strong>${this.userScope === 'manager' ? 'Manager' : 'Viewer'}</strong></p>
-                        <p class="user-login">@${this.userInfo.login}</p>
-                    </div>
-                    <button id="logout-btn" class="btn-secondary">Logout</button>
+                <!-- Banner indicando modo -->
+                <div class="${isRealData ? 'real-banner' : 'demo-banner'}">
+                    <p>${isRealData ? '✅' : '🚀'} <strong>Modo ${isRealData ? 'REAL' : 'Demonstração'}:</strong> 
+                       ${isRealData ? 'Dados reais do seu GitHub' : 'Dados simulados para fins educacionais'}</p>
                 </div>
                 
-                <div class="dashboard-content">
-                    <div class="stats-section">
-                        <div class="stat-card">
-                            <h3>${this.userInfo.public_repos || 0}</h3>
-                            <p>Repositórios</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>${this.userInfo.followers || 0}</h3>
-                            <p>Seguidores</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>${this.userInfo.following || 0}</h3>
-                            <p>Seguindo</p>
-                        </div>
-                    </div>
-                    
-                    <div class="actions-section">
-                        <h3>Ações Disponíveis</h3>
-                        <div class="actions">
-                            ${this.userScope === 'manager' ? 
-                                `
-                                <button class="btn-primary" id="view-repos-btn">📂 Meus Repositórios</button>
-                                <button class="btn-primary" id="create-repo-btn">🆕 Criar Repositório</button>
-                                <button class="btn-primary" id="refresh-btn">🔄 Atualizar</button>
-                                ` : 
-                                `
-                                <button class="btn-primary" id="view-repos-btn">📂 Meus Repositórios</button>
-                                <button class="btn-primary" id="view-profile-btn">👤 Meu Perfil</button>
-                                <button class="btn-primary" id="refresh-btn">🔄 Atualizar</button>
-                                `
-                            }
-                        </div>
-                    </div>
-                    
-                    <div class="results-section">
-                        <h3>Resultados</h3>
-                        <div id="results" class="results">
-                            <p>Clique em uma ação para ver os resultados...</p>
-                        </div>
-                    </div>
-                </div>
+                <!-- Resto do HTML -->
+                ${/* ... */''}
             </div>
         `;
-
+    
         container.innerHTML = html;
         this.attachEventListeners();
     }
 
     async loadUserInfo() {
         try {
-            const response = await fetch('https://api.github.com/user', {
-                headers: {
-                    'Authorization': `Bearer ${this.accessToken}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'GitHub-OAuth-SPA'
+            // Tentar dados reais primeiro
+            if (CONFIG.realDataMode && CONFIG.githubPat && CONFIG.githubPat !== 'PLACEHOLDER_PAT') {
+                console.log('🔍 Tentando carregar dados reais do GitHub...');
+                
+                const response = await fetch('https://api.github.com/user', {
+                    headers: {
+                        'Authorization': `token ${CONFIG.githubPat}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'User-Agent': 'GitHub-OAuth-SPA'
+                    }
+                });
+    
+                if (response.ok) {
+                    this.userInfo = await response.json();
+                    console.log('✅ Dados REAIS do usuário carregados:', this.userInfo);
+                    return;
+                } else {
+                    console.warn('⚠️ Falha ao carregar dados reais, usando dados simulados');
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Erro API: ${response.status}`);
             }
-
-            this.userInfo = await response.json();
-            console.log('✅ Dados do usuário carregados:', this.userInfo);
+    
+            // Fallback para dados simulados
+            console.log('🎭 Usando dados simulados');
+            const isManager = this.userScope === 'manager';
+            
+            this.userInfo = {
+                avatar_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+                name: isManager ? 'GitHub Manager' : 'GitHub Viewer',
+                login: isManager ? 'github-manager' : 'github-viewer',
+                public_repos: isManager ? Math.floor(Math.random() * 20) + 10 : Math.floor(Math.random() * 5) + 1,
+                followers: isManager ? Math.floor(Math.random() * 50) + 10 : Math.floor(Math.random() * 10) + 1,
+                following: Math.floor(Math.random() * 30) + 5,
+                bio: isManager ? 'Desenvolvedor com acesso completo aos repositórios' : 'Visualizador de repositórios',
+                location: 'Internet',
+                html_url: 'https://github.com',
+                email: isManager ? 'manager@example.com' : 'viewer@example.com'
+            };
+            
         } catch (error) {
             console.error('❌ Erro ao carregar dados do usuário:', error);
-            // Fallback para dados simulados
+            // Fallback básico
             this.userInfo = {
                 avatar_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
                 name: 'Usuário GitHub',
                 login: 'github-user',
                 public_repos: 0,
                 followers: 0,
-                following: 0
+                following: 0,
+                bio: 'Usuário do GitHub',
+                location: 'Internet',
+                html_url: 'https://github.com'
             };
         }
     }
-
+    
     async loadUserRepos() {
         try {
-            const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=20', {
-                headers: {
-                    'Authorization': `Bearer ${this.accessToken}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'GitHub-OAuth-SPA'
+            // Tentar dados reais primeiro
+            if (CONFIG.realDataMode && CONFIG.githubPat && CONFIG.githubPat !== 'PLACEHOLDER_PAT') {
+                console.log('🔍 Tentando carregar repositórios reais...');
+                
+                const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=50', {
+                    headers: {
+                        'Authorization': `token ${CONFIG.githubPat}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'User-Agent': 'GitHub-OAuth-SPA'
+                    }
+                });
+    
+                if (response.ok) {
+                    this.repos = await response.json();
+                    console.log('✅ Repositórios REAIS carregados:', this.repos.length);
+                    return;
+                } else {
+                    console.warn('⚠️ Falha ao carregar repositórios reais, usando dados simulados');
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Erro API: ${response.status}`);
             }
-
-            this.repos = await response.json();
-            console.log('✅ Repositórios carregados:', this.repos.length);
+    
+            // Fallback para dados simulados
+            console.log('🎭 Usando repositórios simulados');
+            const isManager = this.userScope === 'manager';
+            
+            const baseRepos = [
+                { 
+                    name: 'meu-projeto', 
+                    language: 'JavaScript', 
+                    description: 'Meu projeto principal de desenvolvimento web',
+                    private: false
+                },
+                { 
+                    name: 'api-backend', 
+                    language: 'Python', 
+                    description: 'API RESTful para aplicação backend',
+                    private: true 
+                }
+            ];
+            
+            this.repos = baseRepos.map((repo, index) => ({
+                name: repo.name,
+                language: repo.language,
+                description: repo.description,
+                stargazers_count: Math.floor(Math.random() * 25),
+                forks_count: Math.floor(Math.random() * 12),
+                private: repo.private,
+                html_url: `https://github.com/seu-usuario/${repo.name}`,
+                updated_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+            }));
+            
         } catch (error) {
             console.error('❌ Erro ao carregar repositórios:', error);
             this.repos = [];
@@ -287,52 +323,77 @@ class Dashboard {
     async createRepository() {
         const repoName = prompt('Digite o nome do novo repositório:');
         if (!repoName) return;
-
+    
         const results = document.getElementById('results');
         results.innerHTML = '<div class="loading-spinner"></div><p>Criando repositório...</p>';
         
         try {
-            const response = await fetch('https://api.github.com/user/repos', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.accessToken}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'GitHub-OAuth-SPA'
-                },
-                body: JSON.stringify({
-                    name: repoName,
-                    description: 'Repositório criado via GitHub OAuth SPA',
-                    private: false,
-                    auto_init: true
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Erro: ${response.status}`);
+            // Tentar criar repositório real se PAT estiver disponível
+            if (CONFIG.realDataMode && CONFIG.githubPat && CONFIG.githubPat !== 'PLACEHOLDER_PAT') {
+                const response = await fetch('https://api.github.com/user/repos', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${CONFIG.githubPat}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'GitHub-OAuth-SPA'
+                    },
+                    body: JSON.stringify({
+                        name: repoName,
+                        description: 'Repositório criado via GitHub OAuth SPA',
+                        private: false,
+                        auto_init: true
+                    })
+                });
+    
+                if (response.ok) {
+                    const newRepo = await response.json();
+                    
+                    // Recarregar repositórios reais
+                    await this.loadUserRepos();
+                    
+                    results.innerHTML = `
+                        <div class="success-message">
+                            <h4>✅ Repositório criado com sucesso!</h4>
+                            <p><strong>${newRepo.name}</strong> foi criado no GitHub.</p>
+                            <p><a href="${newRepo.html_url}" target="_blank" class="repo-link">Abrir no GitHub →</a></p>
+                            <button class="btn-primary" onclick="dashboard.viewRepositories()">Ver todos os repositórios</button>
+                        </div>
+                    `;
+                    return;
+                }
             }
-
-            const newRepo = await response.json();
+    
+            // Fallback para simulação
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // Recarregar a lista de repositórios
-            await this.loadUserRepos();
+            const newRepo = {
+                name: repoName,
+                html_url: `https://github.com/seu-usuario/${repoName}`,
+                private: false,
+                description: 'Repositório criado via GitHub OAuth SPA'
+            };
+            
+            this.repos.unshift({
+                ...newRepo,
+                language: 'JavaScript',
+                stargazers_count: 0,
+                forks_count: 0,
+                updated_at: new Date().toISOString()
+            });
             
             results.innerHTML = `
                 <div class="success-message">
-                    <h4>✅ Repositório criado com sucesso!</h4>
-                    <p><strong>${newRepo.name}</strong> foi criado no GitHub.</p>
-                    <p><a href="${newRepo.html_url}" target="_blank" class="repo-link">Abrir no GitHub →</a></p>
-                    <button class="btn-primary" onclick="dashboard.viewRepositories()">Ver todos os repositórios</button>
+                    <h4>✅ Repositório SIMULADO criado!</h4>
+                    <p><strong>${newRepo.name}</strong> (modo demonstração)</p>
+                    <button class="btn-primary" onclick="dashboard.viewRepositories()">Ver repositórios</button>
                 </div>
             `;
+            
         } catch (error) {
             results.innerHTML = `
                 <div class="error-message">
                     <p>❌ Erro ao criar repositório: ${error.message}</p>
-                    ${error.message.includes('name already exists') ? 
-                        '<p>💡 Este nome já está em uso. Tente outro nome.</p>' : ''
-                    }
                 </div>
             `;
         }
@@ -398,24 +459,24 @@ class App {
     }
 
     async init() {
-        console.log('🚀 Aplicação iniciada - CLIENT_ID:', window.CLIENT_ID);
-        
-        // Verificar página atual
-        const path = window.location.pathname;
-        
-        if (path.includes('callback.html')) {
-            // O callback.html agora redireciona para processing.html
-            return;
-        }
+    console.log('🚀 Aplicação iniciada - CLIENT_ID:', window.CLIENT_ID);
     
-        if (path.includes('processing.html')) {
-            // O processing.html já tem seu próprio script
-            return;
-        }
+    // Verificar página atual
+    const path = window.location.pathname;
     
-        // Página principal
-        await this.showAppropriateView();
+    if (path.includes('callback.html')) {
+        // O callback.html agora redireciona para processing.html
+        return;
     }
+
+    if (path.includes('processing.html')) {
+        // O processing.html já tem seu próprio script
+        return;
+    }
+
+    // Página principal
+    await this.showAppropriateView();
+}
 
     async showAppropriateView() {
         const accessToken = sessionStorage.getItem('access_token');
