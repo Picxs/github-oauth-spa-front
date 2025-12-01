@@ -116,26 +116,94 @@ class Dashboard {
     }
 
     async render(container) {
-        await this.loadUserInfo();
-        await this.loadUserRepos();
+        if (!container) {
+            throw new Error('Container não fornecido para renderização');
+        }
         
-        const isRealData = CONFIG.realDataMode && CONFIG.githubPat && CONFIG.githubPat !== 'PLACEHOLDER_PAT';
-        
-        const html = `
-            <div class="dashboard">
-                <!-- Banner indicando modo -->
-                <div class="${isRealData ? 'real-banner' : 'demo-banner'}">
-                    <p>${isRealData ? '✅' : '🚀'} <strong>Modo ${isRealData ? 'REAL' : 'Demonstração'}:</strong> 
-                       ${isRealData ? 'Dados reais do seu GitHub' : 'Dados simulados para fins educacionais'}</p>
+        console.log('🎨 Renderizando dashboard no container:', container);
+        try {
+            await this.loadUserInfo();
+            await this.loadUserRepos();
+            
+            const isRealData = CONFIG.realDataMode && CONFIG.githubPat && CONFIG.githubPat !== 'PLACEHOLDER_PAT';
+            
+            const html = `
+                <div class="dashboard">
+                    <!-- Banner indicando modo -->
+                    <div class="${isRealData ? 'real-banner' : 'demo-banner'}">
+                        <p>${isRealData ? '✅' : '🚀'} <strong>Modo ${isRealData ? 'REAL' : 'Demonstração'}:</strong> 
+                           ${isRealData ? 'Dados reais do seu GitHub' : 'Dados simulados para fins educacionais'}</p>
+                    </div>
+                    
+                    <div class="user-header">
+                        <img src="${this.userInfo.avatar_url}" alt="Avatar" class="avatar">
+                        <div class="user-info">
+                            <h2>Bem-vindo, ${this.userInfo.name || this.userInfo.login}!</h2>
+                            <p class="user-scope">Perfil: <strong>${this.userScope === 'manager' ? 'Manager' : 'Viewer'}</strong></p>
+                            <p class="user-login">@${this.userInfo.login}</p>
+                        </div>
+                        <button id="logout-btn" class="btn-secondary">Logout</button>
+                    </div>
+                    
+                    <div class="dashboard-content">
+                        <div class="stats-section">
+                            <div class="stat-card">
+                                <h3>${this.userInfo.public_repos || 0}</h3>
+                                <p>Repositórios</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>${this.userInfo.followers || 0}</h3>
+                                <p>Seguidores</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>${this.userInfo.following || 0}</h3>
+                                <p>Seguindo</p>
+                            </div>
+                        </div>
+                        
+                        <div class="actions-section">
+                            <h3>Ações Disponíveis</h3>
+                            <div class="actions">
+                                ${this.userScope === 'manager' ? 
+                                    `
+                                    <button class="btn-primary" id="view-repos-btn">📂 Meus Repositórios</button>
+                                    <button class="btn-primary" id="create-repo-btn">🆕 Criar Repositório</button>
+                                    <button class="btn-primary" id="refresh-btn">🔄 Atualizar</button>
+                                    ` : 
+                                    `
+                                    <button class="btn-primary" id="view-repos-btn">📂 Meus Repositórios</button>
+                                    <button class="btn-primary" id="view-profile-btn">👤 Meu Perfil</button>
+                                    <button class="btn-primary" id="refresh-btn">🔄 Atualizar</button>
+                                    `
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="results-section">
+                            <h3>Resultados</h3>
+                            <div id="results" class="results">
+                                <p>Clique em uma ação para ver os resultados...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <!-- Resto do HTML -->
-                ${/* ... */''}
-            </div>
-        `;
+            `;
     
-        container.innerHTML = html;
-        this.attachEventListeners();
+            // Renderizar o HTML primeiro
+            container.innerHTML = html;
+            
+            // Aguardar um tick do event loop para garantir que o DOM foi atualizado
+            await new Promise(resolve => setTimeout(resolve, 0));
+            
+            // Agora anexar os event listeners
+            this.attachEventListeners();
+            
+            console.log('✅ Dashboard renderizado com sucesso!');
+            
+        } catch (error) {
+            console.error('❌ Erro ao renderizar dashboard:', error);
+            throw error;
+        }
     }
 
     async loadUserInfo() {
@@ -255,14 +323,55 @@ class Dashboard {
     }
 
     attachEventListeners() {
-        document.getElementById('logout-btn').addEventListener('click', () => this.logout());
-        document.getElementById('view-repos-btn').addEventListener('click', () => this.viewRepositories());
-        document.getElementById('refresh-btn').addEventListener('click', () => this.refreshData());
-        
-        if (this.userScope === 'manager') {
-            document.getElementById('create-repo-btn').addEventListener('click', () => this.createRepository());
-        } else {
-            document.getElementById('view-profile-btn').addEventListener('click', () => this.viewProfile());
+        try {
+            console.log('🔗 Anexando event listeners...');
+            
+            const logoutBtn = document.getElementById('logout-btn');
+            const viewReposBtn = document.getElementById('view-repos-btn');
+            const refreshBtn = document.getElementById('refresh-btn');
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => this.logout());
+                console.log('✅ Logout listener anexado');
+            } else {
+                console.warn('⚠️  Botão logout não encontrado');
+            }
+            
+            if (viewReposBtn) {
+                viewReposBtn.addEventListener('click', () => this.viewRepositories());
+                console.log('✅ View repos listener anexado');
+            } else {
+                console.warn('⚠️  Botão view repos não encontrado');
+            }
+            
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => this.refreshData());
+                console.log('✅ Refresh listener anexado');
+            } else {
+                console.warn('⚠️  Botão refresh não encontrado');
+            }
+            
+            if (this.userScope === 'manager') {
+                const createRepoBtn = document.getElementById('create-repo-btn');
+                if (createRepoBtn) {
+                    createRepoBtn.addEventListener('click', () => this.createRepository());
+                    console.log('✅ Create repo listener anexado');
+                } else {
+                    console.warn('⚠️  Botão create repo não encontrado');
+                }
+            } else {
+                const viewProfileBtn = document.getElementById('view-profile-btn');
+                if (viewProfileBtn) {
+                    viewProfileBtn.addEventListener('click', () => this.viewProfile());
+                    console.log('✅ View profile listener anexado');
+                } else {
+                    console.warn('⚠️  Botão view profile não encontrado');
+                }
+            }
+            
+            console.log('🎯 Todos os event listeners anexados');
+        } catch (error) {
+            console.error('❌ Erro ao anexar event listeners:', error);
         }
     }
 
@@ -575,20 +684,38 @@ class App {
     }
 
     async showDashboard(accessToken) {
-        console.log('🔐 Token de acesso:', accessToken);
-        console.log('📋 Escopo:', sessionStorage.getItem('user_scope'));
-        
         try {
             const userScope = await AuthUtils.getUserScopes(accessToken);
             console.log('🎯 Escopo determinado:', userScope);
             
             window.dashboard = new Dashboard(accessToken, userScope);
-            await window.dashboard.render(document.getElementById('content'));
+            
+            const contentElement = document.getElementById('content');
+            if (!contentElement) {
+                throw new Error('Elemento #content não encontrado no DOM');
+            }
+            
+            await window.dashboard.render(contentElement);
+            console.log('✅ Dashboard carregado com sucesso!');
+            
         } catch (error) {
             console.error('❌ Erro ao carregar dashboard:', error);
+            
+            // Mostrar erro amigável para o usuário
+            const contentElement = document.getElementById('content');
+            if (contentElement) {
+                contentElement.innerHTML = `
+                    <div class="error-container">
+                        <h2>😕 Erro ao carregar dashboard</h2>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()" class="btn-primary">Tentar novamente</button>
+                        <button onclick="sessionStorage.clear(); location.href='index.html'" class="btn-secondary">Fazer logout</button>
+                    </div>
+                `;
+            }
+            
             sessionStorage.removeItem('access_token');
             sessionStorage.removeItem('user_scope');
-            this.showLogin();
         }
     }
 }

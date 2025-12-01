@@ -269,3 +269,22 @@ h1 {
     text-align: center;
     color: #856404;
 }
+
+.error-container {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.error-container h2 {
+    color: #dc3545;
+    margin-bottom: 15px;
+}
+
+.error-container p {
+    color: #666;
+    margin-bottom: 20px;
+}
