@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub Repo Manager</title>
     <link rel="stylesheet" href="styles.css">
-    
-    <!-- CLIENT_ID será injetado pelo GitHub Actions -->
     <script>
         window.CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
     </script>
@@ -16,7 +14,6 @@
         <div class="container">
             <h1>GitHub Repository Manager</h1>
             <div id="content">
-                <!-- Conteúdo será carregado dinamicamente pelo app.js -->
                 <div class="login-container">
                     <h2>Bem-vindo</h2>
                     <p>Gerencie seus repositórios do GitHub com segurança</p>
@@ -27,7 +24,7 @@
         </div>
     </div>
 
-    <!-- Carregar a aplicação principal como módulo -->
+    <!-- CARREGA APENAS ESTE ARQUIVO -->
     <script type="module" src="src/app.js"></script>
 </body>
 </html>
