@@ -43,12 +43,12 @@ class AuthUtils {
 
             sessionStorage.setItem('pkce_code_verifier', codeVerifier);
             sessionStorage.setItem('oauth_state', state);
-            const redirectUri = `${window.location.origin}` + '/github-oauth-spa-front/callback.html';
+            const redirectUri = `${window.location.origin}/callback.html`;
             const scope = 'read:user repo';
 
             const authUrl = new URL('https://github.com/login/oauth/authorize');
             authUrl.searchParams.set('client_id', window.CLIENT_ID);
-            authUrl.searchParams.set('redirect_uri', "https://picxs.github.io/github-oauth-spa-front/callback.html");
+            authUrl.searchParams.set('redirect_uri', redirectUri);
             authUrl.searchParams.set('scope', scope);
             authUrl.searchParams.set('response_type', 'code');
             authUrl.searchParams.set('state', state);
