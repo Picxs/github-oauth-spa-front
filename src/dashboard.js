@@ -14,6 +14,9 @@ class Dashboard {
         const html = `
             <div class="dashboard">
                 <div class="user-header">
+                    <script>
+                        window.CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
+                    </script>
                     <img src="${this.userInfo.avatar_url}" alt="Avatar" class="avatar">
                     <h2>Bem-vindo, ${this.userInfo.name || this.userInfo.login}!</h2>
                     <p>Permissão: ${this.userScope === 'manager' ? 'Manager' : 'Viewer'}</p>

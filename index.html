@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub Repo Manager</title>
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- CLIENT_ID será injetado pelo GitHub Actions -->
+    <script>
+        // Placeholder que será substituído pelo GitHub Actions
+        window.CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
+    </script>
 </head>
 <body>
     <div id="app">
@@ -31,8 +37,6 @@
     <script type="module">
         import AuthUtils from './src/auth.js';
 
-        //window.CLIENT_ID = 'Ov23lihCtieY7buaZx6s';
-        const CLIENT_ID = window.CLIENT_ID;
         console.log('CLIENT_ID configurado:', window.CLIENT_ID);
 
         document.getElementById('login-btn').addEventListener('click', () => {
@@ -41,7 +45,7 @@
 
         // Verificar se já está autenticado
         if (sessionStorage.getItem('access_token')) {
-            window.location.href = '/dashboard.html';
+            window.location.href = '/';
         }
     </script>
 </body>
