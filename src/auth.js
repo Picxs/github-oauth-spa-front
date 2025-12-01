@@ -39,7 +39,7 @@ class AuthUtils {
 
             // CLIENT_ID será injetado pelo GitHub Actions
             const clientId = window.CLIENT_ID;
-            const redirectUri = `${window.location.origin}github-oauth-spa-front/callback.html`;
+            const redirectUri = `${window.location.origin} github-oauth-spa-front/callback.html`;
             
             // Scopes para diferenciar Viewer vs Manager
             const scope = 'read:user repo';
