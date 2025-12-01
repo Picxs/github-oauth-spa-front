@@ -31,6 +31,10 @@
     <script type="module">
         import AuthUtils from './src/auth.js';
 
+        //window.CLIENT_ID = 'Ov23lihCtieY7buaZx6s';
+        const CLIENT_ID = window.CLIENT_ID;
+        console.log('CLIENT_ID configurado:', window.CLIENT_ID);
+
         document.getElementById('login-btn').addEventListener('click', () => {
             AuthUtils.startOAuthFlow();
         });
