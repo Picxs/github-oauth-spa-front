@@ -14,17 +14,93 @@
         <div class="container">
             <h1>GitHub Repository Manager</h1>
             <div id="content">
-                <!-- Conteúdo será carregado dinamicamente pelo app.js -->
                 <div class="login-container">
                     <h2>Finalizando autenticação...</h2>
                     <div class="loading-spinner"></div>
-                    <p id="status">Processando token...</p>
+                    <p id="status">Processando token de acesso...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Carrega o mesmo app.js que gerencia toda a aplicação -->
-    <script type="module" src="src/app.js"></script>
+    <script>
+        async function exchangeCodeForToken() {
+            const statusEl = document.getElementById('status');
+            
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+
+                if (!code) {
+                    throw new Error('Código de autorização não encontrado');
+                }
+
+                statusEl.textContent = 'Trocando código por token...';
+
+                // Fazer a troca REAL com a API do GitHub
+                const response = await fetch('https://github.com/login/oauth/access_token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_id: window.CLIENT_ID,
+                        client_secret: '', // Em SPA pública, não usamos client_secret
+                        code: code,
+                        code_verifier: codeVerifier,
+                        redirect_uri: window.location.origin + '/callback.html'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro na troca de token: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Resposta do GitHub:', data);
+
+                if (data.access_token) {
+                    statusEl.textContent = 'Token recebido! Salvando...';
+                    
+                    // Salvar o token REAL do GitHub
+                    sessionStorage.setItem('access_token', data.access_token);
+                    
+                    // Determinar escopo baseado no token
+                    const userScope = data.scope && data.scope.includes('repo') ? 'manager' : 'viewer';
+                    sessionStorage.setItem('user_scope', userScope);
+                    
+                    // Limpar dados temporários
+                    sessionStorage.removeItem('pkce_code_verifier');
+                    sessionStorage.removeItem('oauth_state');
+                    
+                    statusEl.textContent = 'Autenticação concluída! Redirecionando...';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                    
+                } else {
+                    throw new Error('Access token não recebido: ' + (data.error_description || data.error));
+                }
+
+            } catch (error) {
+                console.error('❌ Erro no token exchange:', error);
+                statusEl.textContent = 'Erro: ' + error.message;
+                statusEl.style.color = 'red';
+                
+                sessionStorage.removeItem('pkce_code_verifier');
+                sessionStorage.removeItem('oauth_state');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 3000);
+            }
+        }
+
+        // Iniciar processo de troca
+        document.addEventListener('DOMContentLoaded', exchangeCodeForToken);
+    </script>
 </body>
 </html>

@@ -64,6 +64,30 @@ class AuthUtils {
     }
 
     static async getUserScopes(accessToken) {
+        try {
+            // Tentar fazer uma requisição para verificar permissões
+            const response = await fetch('https://api.github.com/user', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+    
+            if (response.ok) {
+                // Verificar escopos no header (se disponível)
+                const scopesHeader = response.headers.get('x-oauth-scopes');
+                console.log('Escopos concedidos:', scopesHeader);
+                
+                if (scopesHeader && scopesHeader.includes('repo')) {
+                    return 'manager';
+                }
+                return 'viewer';
+            }
+        } catch (error) {
+            console.log('Erro ao verificar escopos:', error);
+        }
+        
+        // Fallback para o escopo armazenado
         return sessionStorage.getItem('user_scope') || 'viewer';
     }
 }
@@ -487,56 +511,20 @@ class App {
     }
 
     async handleTokenExchange() {
-        const content = document.getElementById('content');
-        content.innerHTML = `
-            <div class="login-container">
-                <h2>Finalizando autenticação...</h2>
-                <div class="loading-spinner"></div>
-                <p id="status">Processando token de acesso...</p>
-            </div>
-        `;
-
-        const statusEl = document.getElementById('status');
-
-        try {
-            statusEl.textContent = 'Token recebido! Configurando sessão...';
-
-            // Simular obtenção do token
-            const mockAccessToken = "gho_mock_" + Math.random().toString(36).substr(2, 20);
-            const userScope = Math.random() > 0.5 ? 'manager' : 'viewer';
-            
-            // Armazenar token e escopo
-            sessionStorage.setItem('access_token', mockAccessToken);
-            sessionStorage.setItem('user_scope', userScope);
-            
-            // Limpar dados temporários
-            sessionStorage.removeItem('pkce_code_verifier');
-            sessionStorage.removeItem('oauth_state');
-            
-            statusEl.textContent = 'Autenticação concluída! Redirecionando...';
-            
-            // Redirecionar para página principal
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1500);
-            
-        } catch (error) {
-            console.error('❌ Erro no token exchange:', error);
-            statusEl.textContent = 'Erro: ' + error.message;
-            statusEl.style.color = 'red';
-            
-            sessionStorage.removeItem('pkce_code_verifier');
-            sessionStorage.removeItem('oauth_state');
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 3000);
-        }
+        // Esta função não será mais usada pois o token-exchange.html
+        // agora faz a troca real diretamente
+        console.log('📝 Token exchange page - redirecionando...');
+        window.location.href = 'index.html';
     }
 
     async showDashboard(accessToken) {
+        console.log('🔐 Token de acesso:', accessToken);
+        console.log('📋 Escopo:', sessionStorage.getItem('user_scope'));
+        
         try {
             const userScope = await AuthUtils.getUserScopes(accessToken);
+            console.log('🎯 Escopo determinado:', userScope);
+            
             window.dashboard = new Dashboard(accessToken, userScope);
             await window.dashboard.render(document.getElementById('content'));
         } catch (error) {
