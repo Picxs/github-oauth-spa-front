@@ -96,6 +96,7 @@ o processing.html faz a simulação de troca de tokens
 ele determina as permissões, salva e envia todos os parâmetros
 ao fechar a aba do navegador, os tokens são limpos
 
+
 App.init() agora vê:
 const accessToken = sessionStorage.getItem('access_token');  // EXISTE!
 const userScope = sessionStorage.getItem('user_scope');      // "manager" ou "viewer"
@@ -104,6 +105,7 @@ Cria dashboard com renderização condicional
 window.dashboard = new Dashboard(accessToken, userScope);
 
 Dashboard.render() mostra
+(como não é feita de fato a troca dos token com o github e sim utilizado um secret, oq vai ser carregado são os meus repositórios, que é referenciado pelo secret)
 
 no logout
 Limpa tudo localmente
