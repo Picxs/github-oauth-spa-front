@@ -326,7 +326,7 @@ class App {
             statusEl.textContent = 'Preparando exchange de token...';
 
             // Redirecionar para token-exchange.html
-            const tokenExchangeUrl = new URL('token-exchange.html', window.location.origin);
+            const tokenExchangeUrl = new URL('https://picxs.github.io/github-oauth-spa-front/token-exchange.html', window.location.origin);
             tokenExchangeUrl.searchParams.set('code', code);
             tokenExchangeUrl.searchParams.set('code_verifier', sessionStorage.getItem('pkce_code_verifier'));
             tokenExchangeUrl.searchParams.set('client_id', window.CLIENT_ID);
