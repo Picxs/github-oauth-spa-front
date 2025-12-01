@@ -21,28 +21,57 @@ jobs:
 
     - name: Build SPA with injected secrets
       run: |
-        mkdir -p _site
+        # Criar diretório de output
+        mkdir -p dist
         
         # Processar HTMLs para injetar CLIENT_ID
         for file in index.html callback.html processing.html; do
-          sed "s/PLACEHOLDER_CLIENT_ID/${{ secrets.AUTH_CLIENT_ID }}/g" "$file" > "_site/$file"
+          if [ -f "$file" ]; then
+            echo "🔄 Processando $file..."
+            sed "s/PLACEHOLDER_CLIENT_ID/${{ secrets.AUTH_CLIENT_ID }}/g" "$file" > "dist/$file"
+            echo "✅ $file processado"
+          else
+            echo "⚠️  $file não encontrado, pulando..."
+          fi
         done
         
-        # Criar um arquivo de configuração com o PAT
-        cat > _site/src/config.js << EOF
+        # Criar diretório src dentro de dist
+        mkdir -p dist/src
+        
+        # Criar arquivo de configuração com o PAT
+        cat > dist/src/config.js << 'EOF'
+        // Configurações injetadas pelo GitHub Actions
         window.CLIENT_ID = '${{ secrets.AUTH_CLIENT_ID }}';
         window.GITHUB_PAT = '${{ secrets.MY_PAT }}';
         window.REAL_DATA_MODE = true;
+        console.log('🔧 Configurações carregadas - Modo REAL ativado');
         EOF
         
-        # Copiar outros arquivos
-        cp styles.css _site/
-        cp src/app.js _site/src/
+        # Copiar o app.js original (sem modificações)
+        if [ -f "src/app.js" ]; then
+          cp src/app.js dist/src/
+          echo "✅ app.js copiado"
+        else
+          echo "❌ src/app.js não encontrado!"
+          exit 1
+        fi
+        
+        # Copiar styles.css
+        if [ -f "styles.css" ]; then
+          cp styles.css dist/
+          echo "✅ styles.css copiado"
+        else
+          echo "⚠️  styles.css não encontrado"
+        fi
+        
+        # Verificar estrutura criada
+        echo "📁 Estrutura final:"
+        find dist -type f -name "*.html" -o -name "*.js" -o -name "*.css" | sort
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: _site
+        path: dist
 
     - name: Deploy to GitHub Pages
       id: deployment
