@@ -31,7 +31,7 @@ jobs:
         sed "s/PLACEHOLDER_CLIENT_ID/${{ secrets.AUTH_CLIENT_ID }}/g" callback.html > _site/callback.html
         
         # Copiar outros arquivos
-        cp styles.css _site/
+        cp styles.css processing.html _site/
         
         # Criar diretório src e copiar JS
         mkdir -p _site/src
