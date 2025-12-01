@@ -399,24 +399,20 @@ class App {
 
     async init() {
         console.log('🚀 Aplicação iniciada - CLIENT_ID:', window.CLIENT_ID);
-
-        // Expor dashboard globalmente para os event listeners
-        window.dashboard = null;
-
         
         // Verificar página atual
         const path = window.location.pathname;
         
         if (path.includes('callback.html')) {
-            await this.handleCallback();
+            // O callback.html agora redireciona para processing.html
             return;
         }
-
-        if (path.includes('token-exchange.html')) {
-            await this.handleTokenExchange();
+    
+        if (path.includes('processing.html')) {
+            // O processing.html já tem seu próprio script
             return;
         }
-
+    
         // Página principal
         await this.showAppropriateView();
     }

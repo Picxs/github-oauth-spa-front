@@ -14,17 +14,74 @@
         <div class="container">
             <h1>GitHub Repository Manager</h1>
             <div id="content">
-                <!-- Conteúdo será carregado dinamicamente pelo app.js -->
                 <div class="login-container">
                     <h2>Processando autenticação...</h2>
                     <div class="loading-spinner"></div>
-                    <p id="status">Validando...</p>
+                    <p id="status">Preparando dados...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Carrega o mesmo app.js que gerencia toda a aplicação -->
-    <script type="module" src="src/app.js"></script>
+    <script>
+        async function processCallback() {
+            const statusEl = document.getElementById('status');
+            
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const state = urlParams.get('state');
+                const error = urlParams.get('error');
+
+                if (error) {
+                    throw new Error(`Erro de autorização: ${error}`);
+                }
+
+                if (!code) {
+                    throw new Error('Código de autorização não recebido');
+                }
+
+                // Validar state
+                const storedState = sessionStorage.getItem('oauth_state');
+                if (state !== storedState) {
+                    throw new Error('Falha de segurança: State inválido');
+                }
+
+                statusEl.textContent = 'Armazenando dados temporários...';
+
+                // Armazenar dados para o GitHub Actions processar
+                const authData = {
+                    code: code,
+                    code_verifier: sessionStorage.getItem('pkce_code_verifier'),
+                    client_id: window.CLIENT_ID,
+                    timestamp: Date.now()
+                };
+
+                // Salvar no sessionStorage para a próxima página
+                sessionStorage.setItem('pending_auth', JSON.stringify(authData));
+                
+                statusEl.textContent = 'Redirecionando para processamento...';
+
+                // Redirecionar para página de processamento
+                setTimeout(() => {
+                    window.location.href = 'processing.html';
+                }, 1000);
+
+            } catch (error) {
+                console.error('Erro no callback:', error);
+                statusEl.textContent = 'Erro: ' + error.message;
+                statusEl.style.color = 'red';
+                
+                sessionStorage.removeItem('pkce_code_verifier');
+                sessionStorage.removeItem('oauth_state');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 3000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', processCallback);
+    </script>
 </body>
 </html>
