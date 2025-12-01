@@ -1,4 +1,4 @@
-import GitHubAPI from './githubApi.js';
+import GitHubAPI from '../utils/githubApi.js';
 
 class Dashboard {
     constructor(accessToken, userScope) {
