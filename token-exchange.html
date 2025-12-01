@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Exchange - GitHub Repo Manager</title>
+    <title>Processando Token - GitHub Repo Manager</title>
     <link rel="stylesheet" href="styles.css">
     <script>
         window.CLIENT_ID = 'PLACEHOLDER_CLIENT_ID';
@@ -16,22 +16,10 @@
             <h2>Finalizando autenticação...</h2>
             <div class="loading-spinner"></div>
             <p id="status">Processando token...</p>
-            <form id="token-form" style="display: none;">
-                <input type="hidden" name="code" id="code-input">
-                <input type="hidden" name="code_verifier" id="verifier-input">
-                <button type="submit">Continuar</button>
-            </form>
         </div>
     </div>
 
-    <script>
-        // Esta página será substituída pelo GitHub Actions
-        // Ela apenas coleta os parâmetros e os prepara para o workflow
-        document.getElementById('status').textContent = 'Redirecionando...';
-        
-        setTimeout(() => {
-            window.location.href = 'src/dashboard.js';
-        }, 2000);
-    </script>
+    <!-- Carrega o mesmo app.js que gerencia toda a aplicação -->
+    <script type="module" src="src/app.js"></script>
 </body>
 </html>
